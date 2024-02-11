@@ -13,18 +13,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
 } from "recharts";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMapEvents,
-} from "react-leaflet";
-import { getBinsData, getLatestObservation } from "./apiService"; // Adjust the path as needed
-
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { getBinsData, getLatestObservation } from "./services/apiService";
 import {
   Table,
   Header,
@@ -34,10 +25,9 @@ import {
   Cell,
   HeaderCell,
 } from "@table-library/react-table-library/table";
-
 import { useTheme } from "@table-library/react-table-library/theme";
+import PropTypes from "prop-types";
 
-//import PropTypes from "prop-types";
 
 function Home() {
   const [selectedSection, setSelectedSection] = useState(null);
@@ -48,11 +38,9 @@ function Home() {
   const [observations, setObservations] = useState({});
 
   useEffect(() => {
-    // Fetch bins data when component mounts
     getBinsData()
       .then((data) => {
         setBinsData(data);
-        // Fetch latest observation for each bin
         data.forEach((bin) => {
           getLatestObservation(bin["@iot.id"])
             .then((observation) => {
@@ -94,7 +82,7 @@ function Home() {
     Row: `
       color: var(--theme-ui-colors-text);
   
-      &:not(:last-of-type) .td {
+      .td {
         border-bottom: 1px solid var(--theme-ui-colors-border);
       }
   
@@ -103,9 +91,7 @@ function Home() {
       }
     `,
     BaseCell: `
-      border-bottom: 1px solid transparent;
-      border-right: 1px solid transparent;
-  
+
       padding: 8px;
       height: 52px;
   
@@ -120,6 +106,9 @@ function Home() {
     Cell: ``,
   };
   const theme = useTheme(THEME);
+  const calculatePercentage = (value) => {
+    return value.toFixed(2);
+  };
   const handleSectionClick = (section, image) => {
     setSelectedSection(section);
     setSelectedImage(image);
@@ -129,72 +118,24 @@ function Home() {
 
     switch (section) {
       case 0: // ALL
-        newData = [
-          { name: "Page A", uv: 4000, pv: 2400, amt: 2400 },
-          { name: "Page B", uv: 3000, pv: 1398, amt: 2210 },
-          { name: "Page C", uv: 2000, pv: 9800, amt: 2290 },
-          { name: "Page D", uv: 2780, pv: 3908, amt: 2000 },
-          { name: "Page E", uv: 1890, pv: 4800, amt: 2181 },
-          { name: "Page F", uv: 2390, pv: 3800, amt: 2500 },
-          { name: "Page G", uv: 3490, pv: 4300, amt: 2100 },
-        ];
-        newMarkerPositions = [
-          [51.005, -0.06],
-          [51.105, -0.07],
-          [51.205, -0.08],
-          [51.305, -0.09],
-          [51.405, -0.1],
-          [51.505, -0.11],
-          [51.605, -0.12],
-          [51.705, -0.13],
-          [51.805, -0.14],
-          [51.905, -0.15],
-        ];
+        newData = binsData.map((bin) => ({
+          name: bin.name,
+          result: observations[bin["@iot.id"]]
+            ? observations[bin["@iot.id"]].result
+            : 0,
+        }));
+        newMarkerPositions = binsData.map((bin) => [
+          bin.properties.geometry.coordinates[0],
+          bin.properties.geometry.coordinates[1],
+        ]);
         break;
-      case 1: // LEVEL>70
-        newData = [
-          { name: "Page A", uv: 4500, pv: 2600, amt: 2600 },
-          { name: "Page B", uv: 3200, pv: 1498, amt: 2310 },
-          { name: "Page C", uv: 2200, pv: 10100, amt: 2390 },
-          { name: "Page D", uv: 2980, pv: 4408, amt: 2100 },
-          { name: "Page E", uv: 1990, pv: 5200, amt: 2281 },
-          { name: "Page F", uv: 2490, pv: 4000, amt: 2600 },
-          { name: "Page G", uv: 3590, pv: 4500, amt: 2200 },
-        ];
-        newMarkerPositions = [[51.51, -0.12]];
-        break;
-      case 2: // LEVEL<30
-        newData = [
-          { name: "Page A", uv: 3500, pv: 1800, amt: 1800 },
-          { name: "Page B", uv: 2500, pv: 1398, amt: 2210 },
-          { name: "Page C", uv: 1600, pv: 8800, amt: 2190 },
-          { name: "Page D", uv: 2380, pv: 3408, amt: 1800 },
-          { name: "Page E", uv: 1390, pv: 4200, amt: 1981 },
-          { name: "Page F", uv: 1790, pv: 3200, amt: 2200 },
-          { name: "Page G", uv: 2890, pv: 3700, amt: 1900 },
-        ];
-        newMarkerPositions = [[51.515, -0.1]];
-        break;
-      case 3: // Prediction
-        newData = [
-          { name: "Page A", uv: 5000, pv: 3000, amt: 3000 },
-          { name: "Page B", uv: 3700, pv: 1598, amt: 2510 },
-          { name: "Page C", uv: 2800, pv: 11800, amt: 2690 },
-          { name: "Page D", uv: 3580, pv: 4908, amt: 2300 },
-          { name: "Page E", uv: 2590, pv: 5600, amt: 2481 },
-          { name: "Page F", uv: 3290, pv: 4200, amt: 2800 },
-          { name: "Page G", uv: 4390, pv: 4700, amt: 2400 },
-        ];
-        newMarkerPositions = [[51.505, -0.1]];
-        break;
-      default:
-        break;
+      // ... (other cases)
     }
 
     setData(newData);
     setMarkerPositions(newMarkerPositions);
   };
-  //Transform date to format YYYY-MM-DD
+
   const formatDate = (date) => {
     const d = new Date(date);
     let month = "" + (d.getMonth() + 1);
@@ -209,9 +150,7 @@ function Home() {
 
   const sections = [
     { title: "ALL" },
-    { title: "LEVEL>70" },
-    { title: "LEVEL<30" },
-    { title: "Prediction" },
+    // ... (other sections)
   ];
 
   return (
@@ -232,7 +171,8 @@ function Home() {
                   <HeaderCell resize>Description</HeaderCell>
                   <HeaderCell resize>Location</HeaderCell>
                   <HeaderCell resize>Phenomenon Time</HeaderCell>
-                  <HeaderCell resize>Resulut Time</HeaderCell>
+                  <HeaderCell resize>Result Time</HeaderCell>
+                  <HeaderCell resize>Result</HeaderCell>
                 </HeaderRow>
               </Header>
 
@@ -243,17 +183,32 @@ function Home() {
                     <Cell>{item.name}</Cell>
                     <Cell>{item.description}</Cell>
                     <Cell>
-                      {item.feature.type}({item.feature.coordinates.join(",")})
+                      {item.properties.geometry?.type
+                        ? ` ${
+                            item.properties.geometry.type
+                          }(${item.properties.geometry.coordinates.join(",")})`
+                        : "N/A"}
                     </Cell>
                     <Cell>
                       {observations[item["@iot.id"]]
-                        ? formatDate(observations[item["@iot.id"]].phenomenonTime)
+                        ? formatDate(
+                            observations[item["@iot.id"]].phenomenonTime
+                          )
                         : "N/A"}
                     </Cell>
                     <Cell>
                       {observations[item["@iot.id"]]
                         ? formatDate(observations[item["@iot.id"]].resultTime)
                         : "N/A"}
+                    </Cell>
+                    <Cell>
+                      <Cell>
+                        {observations[item["@iot.id"]]
+                          ? calculatePercentage(
+                              observations[item["@iot.id"]].result
+                            )
+                          : "N/A"}
+                      </Cell>
                     </Cell>
                   </Row>
                 ))}
@@ -262,7 +217,6 @@ function Home() {
           )}
         </Table>
       </section>
-
       <div className="main-title">
         <h3>DASHBOARD</h3>
       </div>
@@ -277,14 +231,11 @@ function Home() {
           >
             <div className="card-inner" style={{ fontSize: "2rem" }}>
               <h3 style={{ textAlign: "center" }}>{section.title}</h3>
-              {/* Ajoutez ici l'icône correspondante si nécessaire */}
             </div>
             <h1>{section.value}</h1>
           </button>
         ))}
       </div>
-
-      {/* Contenu supplémentaire en fonction de la section sélectionnée */}
       {selectedSection !== null && (
         <div className="section-content">
           <h2 style={{ textAlign: "center", fontSize: "2rem" }}>
@@ -297,66 +248,51 @@ function Home() {
             />
           )}
 
-          {/* Carte Leaflet et Graphiques */}
-          <div style={{ display: "flex", flexDirection: "row" }}>
-            <div style={{ flex: 1, marginRight: "20px" }}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  width={500}
-                  height={300}
-                  data={data}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="pv" fill="#8884d8" />
-                  <Bar dataKey="uv" fill="#82ca9d" />
-                </BarChart>
-              </ResponsiveContainer>
-
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  width={500}
-                  height={300}
-                  data={data}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="pv"
-                    stroke="#8884d8"
-                    activeDot={{ r: 8 }}
-                  />
-                  <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ flex: 1 }}>
-              <MapContainer
-                center={[51.505, -0.09]}
-                zoom={13}
-                style={{ height: "600px", width: "800px" }}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <ResponsiveContainer width="80%" height={400}>
+              <BarChart
+                width={600}
+                height={400}
+                data={data}
+                margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
               >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution="&copy; OpenStreetMap contributors"
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
                 />
-                {markerPositions.map((coord, index) => (
-                  <Marker key={index} position={coord}>
-                    <Popup>A Marker Here! Replace with your content.</Popup>
-                  </Marker>
-                ))}
-                <MyComponent />
-              </MapContainer>
-            </div>
+                <YAxis
+                  tickFormatter={(value) => `${calculatePercentage(value)}%`}
+                />
+                <Tooltip
+                  formatter={(value) => `${calculatePercentage(value)}%`}
+                />
+                <Legend />
+                <Bar dataKey="result" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+
+            <MapContainer
+              center={markerPositions[0] || [0, 0]}
+              zoom={13}
+              style={{ height: "600px", width: "800px", marginTop: "20px" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              {markerPositions.map((coord, index) => (
+                <MyMarker key={index} coord={coord} index={index} />
+              ))}
+            </MapContainer>
           </div>
         </div>
       )}
@@ -364,39 +300,45 @@ function Home() {
   );
 }
 
-function MyComponent() {
+function MyMarker({ coord, index }) {
   const [routingControl, setRoutingControl] = useState(null);
-  const map = useMapEvents({
-    click: (e) => {
-      const gotolat = e.latlng.lat;
-      const gotolng = e.latlng.lng;
+  const map = useMap();
 
-      console.log("gotolat :>> ", gotolat);
-      console.log("gotolng :>> ", gotolng);
-      map.locate().on("locationfound", (i) => {
-        console.log(i.latlng);
-        if (routingControl) {
-          routingControl.getPlan().setWaypoints([]);
-          map.removeControl(routingControl);
-        }
-        const waypoints = [
-          L.latLng(i.latlng.lat, i.latlng.lng),
-          L.latLng(gotolat, gotolng),
-        ];
-        const routing = L.Routing.control({
-          waypoints,
-          lineOptions: {
-            styles: [{ color: "blue", opacity: 0.7, weight: 5 }],
-          },
-        }).addTo(map);
-        setRoutingControl(routing);
-      });
-    },
-    locationfound: (location) => {
-      console.log("location found:", location);
-    },
-  });
-  return null;
+  const handleMarkerClick = () => {
+    map.locate().on("locationfound", (i) => {
+      if (routingControl) {
+        routingControl.getPlan().setWaypoints([]);
+        map.removeControl(routingControl);
+      }
+      const waypoints = [
+        L.latLng(i.latlng.lat, i.latlng.lng),
+        L.latLng(coord[0], coord[1]),
+      ];
+      const routing = L.Routing.control({
+        waypoints,
+        lineOptions: {
+          styles: [{ color: "blue", opacity: 0.7, weight: 5 }],
+        },
+      }).addTo(map);
+      setRoutingControl(routing);
+    });
+  };
+
+  return (
+    <Marker
+      key={index}
+      position={coord}
+      riseOnHover
+      eventHandlers={{ click: handleMarkerClick }}
+    >
+      <Popup>{`Dushbin ${index + 1} - Point(${coord[0]}, ${coord[1]})`}</Popup>
+    </Marker>
+  );
 }
+
+MyMarker.propTypes = {
+  coord: PropTypes.arrayOf(PropTypes.number).isRequired,
+  index: PropTypes.number.isRequired,
+};
 
 export default Home;

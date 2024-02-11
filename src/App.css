@@ -244,3 +244,22 @@ body {
     display: none;
   }
 }
+
+.sidebar-user {
+  display: flex;
+  flex-direction: column;
+  padding: 15px 30px 0px 30px;
+  margin-bottom: 30px;
+}
+
+.sidebar-user > span.user-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.sidebar-user > span.user-email {
+  font-size: 16px;
+  font-weight: 400;
+  color: #9e9ea4;
+}
